@@ -1,5 +1,4 @@
 package org.darcstarsolutions.coinmx.test
-
 import org.darcstarsolutions.coinmx.test.configurations.CoinMxConfiguration
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.CommandLineRunner
@@ -11,8 +10,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.web.client.RestTemplate
 
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
+import static org.darcstarsolutions.coinmx.test.utils.ApiUtils.signData
 
 /**
  * Created by mharris on 6/29/15.
@@ -47,7 +45,7 @@ class Application implements CommandLineRunner {
         variables.put("nonce", "123")
         HttpHeaders headers = new HttpHeaders()
         headers.set("API_KEY", coinMxConfiguration.apiKey)
-        String signedData = signData(variables)
+        String signedData = signData(coinMxConfiguration, variables)
         headers.set("SIGNED_DATA", signedData)
 
         HttpEntity<HttpHeaders> entity = new HttpEntity<>(headers)
@@ -55,23 +53,4 @@ class Application implements CommandLineRunner {
         println("Response from request: " + response)
     }
 
-    String signData(Map<String, String> map) {
-        String data = ""
-        List<String> sorted = new ArrayList<>()
-        map = map.sort()
-        map.forEach({ key, value ->
-            sorted.add(key + "=" + value)
-        })
-        data = "/api/v2.1/merchant/transfer_request?" + sorted.join("&")
-        println("Sorted and joined data: " + data)
-        Mac mac = Mac.getInstance("HmacSHA512")
-        SecretKeySpec key = new SecretKeySpec(coinMxConfiguration.apiSecret.getBytes("UTF-8"), "HmacSHA512")
-        mac.init(key)
-        byte[] bytes = mac.doFinal(data.getBytes("UTF-8"))
-        println("Digest: " + bytes)
-        Base64 base64 = new Base64()
-        String value = base64.getEncoder().encodeToString(bytes)
-        println("Signed Data: " + value)
-
-    }
 }
